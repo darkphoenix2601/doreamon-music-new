@@ -1,7 +1,6 @@
 Pyrogram
 TgCrypto
-git+https://github.com/MarshalX/tgcalls@dev#subdirectory=pytgcalls
-tgcalls
+pytgcalls
 python-dotenv
 youtube_dl
 youtube_search_python
