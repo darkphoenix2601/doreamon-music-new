@@ -1,133 +1,121 @@
-# Daisyxmusic (Telegram bot project )
-# Copyright (C) 2021  Inukaasith
-
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as
-# published by the Free Software Foundation, either version 3 of the
-# License, or (at your option) any later version.
-
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Affero General Public License for more details.
-#
-# You should have received a copy of the GNU Affero General Public License
-# along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-import logging
-from DaisyXMusic.modules.msg import Messages as tr
 from pyrogram import Client
-from pyrogram import filters
-from pyrogram.types import InlineKeyboardMarkup
-from pyrogram.types import InlineKeyboardButton
-from pyrogram.types import Message
-from DaisyXMusic.config import SOURCE_CODE
-from DaisyXMusic.config import ASSISTANT_NAME
-from DaisyXMusic.config import PROJECT_NAME
-from DaisyXMusic.config import SUPPORT_GROUP
-from DaisyXMusic.config import UPDATES_CHANNEL
-from DaisyXMusic.config import BOT_USERNAME
-logging.basicConfig(level=logging.INFO)
+from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 
-@Client.on_message(filters.private & filters.incoming & filters.command(['start']))
-def _start(client, message):
-    client.send_message(message.chat.id,
-        text=tr.START_MSG.format(message.from_user.first_name, message.from_user.id),
-        parse_mode="markdown",
+from config import BOT_NAME as bn
+from helpers.filters import filters
+
+
+@Client.on_message(filters.command('start'))
+async def start(_, message: Message):
+    await message.reply_text(
+        f"""I am **{bn}** !!
+•I let you play music in your group's voice chat 😉
+•Currently I am under a private vc music player ⏩
+•To add me take permission from [Owner](https://t.me/akshi_s_ashu)
+•The commands I currently support are:
+⚜️ /play - __Plays the replied audio file or YouTube video through link.__
+⚜️ /pause - __Pause Voice Chat Music.__
+⚜️ /resume - __Resume Voice Chat Music.__
+⚜️ /skip - __Skips the current Music Playing In Voice Chat.__
+⚜️ /stop - __Clears The Queue as well as ends Voice Chat Music.__
+⚜️ /song (song name) - __To search song and send song directly.__
+⚜️ /yt (song name) - To search song from youtube and play directly 
+        """,
         reply_markup=InlineKeyboardMarkup(
             [
                 [
                     InlineKeyboardButton(
-                        "➕ Add me to your Group 🙋‍♀️", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")],
-                [
+                        "Group 💬", url="https://t.me/phoenix_music_suport"
+                    ),
                     InlineKeyboardButton(
-                        "📲 Updates", url=f"https://t.me/{UPDATES_CHANNEL}"), 
+                        "Channel 📣", url="https://t.me/phoenix_music_new"
+                    ),
                     InlineKeyboardButton(
-                        "💬 Support", url=f"https://t.me/{SUPPORT_GROUP}")
-                ],[
-                    InlineKeyboardButton(
-                        "🛠 Source Code 🛠", url=f"https://{SOURCE_CODE}")
+                        "Owner 👑", url="https://t.me/akshi_s_ashu"
+                    )
                 ]
             ]
-        ),
-        reply_to_message_id=message.message_id
         )
-
-@Client.on_message(filters.command("start") & ~filters.private & ~filters.channel)
-async def gstart(_, message: Message):
-    await message.reply_text(
-        f"""**🔴 {PROJECT_NAME} is online**""",
-        reply_markup=InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "💬 Support Chat", url=f"https://t.me/{SUPPORT_GROUP}"
-                    )
-                ]
-            ]
-        ),
     )
 
+from pyrogram import Client, filters
 
-@Client.on_message(filters.private & filters.incoming & filters.command(['help']))
-def _help(client, message):
-    client.send_message(chat_id = message.chat.id,
-        text = tr.HELP_MSG[1],
-        parse_mode="markdown",
-        disable_web_page_preview=True,
-        disable_notification=True,
-        reply_markup = InlineKeyboardMarkup(map(1)),
-        reply_to_message_id = message.message_id
-    )
+import youtube_dl
+from youtube_search import YoutubeSearch
+import requests
 
-help_callback_filter = filters.create(lambda _, __, query: query.data.startswith('help+'))
+import os
 
-@Client.on_callback_query(help_callback_filter)
-def help_answer(client, callback_query):
-    chat_id = callback_query.from_user.id
-    disable_web_page_preview=True
-    message_id = callback_query.message.message_id
-    msg = int(callback_query.data.split('+')[1])
-    client.edit_message_text(chat_id=chat_id,    message_id=message_id,
-        text=tr.HELP_MSG[msg],    reply_markup=InlineKeyboardMarkup(map(msg))
-    )
+# Convert hh:mm:ss to seconds
+def time_to_seconds(time):
+    stringt = str(time)
+    return sum(int(x) * 60 ** i for i, x in enumerate(reversed(stringt.split(':'))))
 
 
-def map(pos):
-    if(pos==1):
-        button = [
-            [InlineKeyboardButton(text = '▶️', callback_data = "help+2")]
-        ]
-    elif(pos==len(tr.HELP_MSG)-1):
-        url = f"https://t.me/{SUPPORT_GROUP}"
-        button = [
-            [InlineKeyboardButton("➕ Add me to your Group 🙋‍♀️", url=f"https://t.me/{BOT_USERNAME}?startgroup=true")],
-            [InlineKeyboardButton(text = '📲 Updates', url=f"https://t.me/{UPDATES_CHANNEL}"),
-             InlineKeyboardButton(text = '💬 Support', url=f"https://t.me/{SUPPORT_GROUP}")],
-            [InlineKeyboardButton(text = '🛠 Source Code 🛠', url=f"https://{SOURCE_CODE}")],
-            [InlineKeyboardButton(text = '◀️', callback_data = f"help+{pos-1}")]
-        ]
-    else:
-        button = [
-            [
-                InlineKeyboardButton(text = '◀️', callback_data = f"help+{pos-1}"),
-                InlineKeyboardButton(text = '▶️', callback_data = f"help+{pos+1}")
-            ],
-        ]
-    return button
+@Client.on_message(filters.command(['song']))
+def a(client, message):
+    query = ''
+    for i in message.command[1:]:
+        query += ' ' + str(i)
+    print(query)
+    m = message.reply(f"**🔎 Searching For** `{query}`")
+    ydl_opts = {"format": "bestaudio[ext=m4a]"}
+    try:
+        results = []
+        count = 0
+        while len(results) == 0 and count < 6:
+            if count>0:
+                time.sleep(1)
+            results = YoutubeSearch(query, max_results=1).to_dict()
+            count += 1
+        # results = YoutubeSearch(query, max_results=1).to_dict()
+        try:
+            link = f"https://youtube.com{results[0]['url_suffix']}"
+            # print(results)
+            title = results[0]["title"]
+            thumbnail = results[0]["thumbnails"][0]
+            duration = results[0]["duration"]
+            views = results[0]["views"]
 
-@Client.on_message(filters.command("help") & ~filters.private & ~filters.channel)
-async def ghelp(_, message: Message):
-    await message.reply_text(
-        f"""**🙋‍♀️ Hello there! I can play music in the voice chats of telegram groups & channels.**""",
-        reply_markup=InlineKeyboardMarkup(
-            [
-                [
-                    InlineKeyboardButton(
-                        "🟡 Click here for help 🟡", url=f"https://t.me/{BOT_USERNAME}?start"
-                    )
-                ]
-            ]
-        ),
-    )
+            ## UNCOMMENT THIS IF YOU WANT A LIMIT ON DURATION. CHANGE 1800 TO YOUR OWN PREFFERED DURATION AND EDIT THE MESSAGE (30 minutes cap) LIMIT IN SECONDS
+            # if time_to_seconds(duration) >= 1800:  # duration limit
+            #     m.edit("Exceeded 30mins cap")
+            #     return
 
+            performer = f"[MÚSÎC ẞø†]" 
+            thumb_name = f'thumb{message.message_id}.jpg'
+            thumb = requests.get(thumbnail, allow_redirects=True)
+            open(thumb_name, 'wb').write(thumb.content)
+
+        except Exception as e:
+            print(e)
+            m.edit('**Found Literary Noting. Please Try Another Song or Use Correct Spelling!**')
+            return
+    except Exception as e:
+        m.edit(
+            "**Enter Song Name with Command!**"
+        )
+        print(str(e))
+        return
+    m.edit(f"🔥 **Uploading Song**  `{query}` !")
+    try:
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            info_dict = ydl.extract_info(link, download=False)
+            audio_file = ydl.prepare_filename(info_dict)
+            ydl.process_info(info_dict)
+        rep = f'🏷 <b>Title:</b> <a href="{link}">{title}</a>\n⏳ <b>Duration:</b> <code>{duration}</code>\n👀 <b>Views:</b> <code>{views}</code>\n'
+        secmul, dur, dur_arr = 1, 0, duration.split(':')
+        for i in range(len(dur_arr)-1, -1, -1):
+            dur += (int(dur_arr[i]) * secmul)
+            secmul *= 60
+        message.reply_audio(audio_file, caption=rep, parse_mode='HTML',quote=False, title=title, duration=dur, performer=performer, thumb=thumb_name)
+        m.delete()
+        message.delete()
+    except Exception as e:
+        m.edit('**An Error Occured. Please Report This To [SUPORT GROUP](https://t.me/phoenix_music_suport) !!**')
+        print(e)
+    try:
+        os.remove(audio_file)
+        os.remove(thumb_name)
+    except Exception as e:
+        print(e)
